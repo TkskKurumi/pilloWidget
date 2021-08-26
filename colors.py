@@ -39,6 +39,8 @@ class color:
 		return color.HSVA(H,S,V,A)
 	def __str__(self):
 		return str(self.astuple())
+	def __repr__(self):
+		return self.__str__()
 	def __iter__(self):
 		return self.astuple().__iter__()
 	

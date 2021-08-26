@@ -7,7 +7,7 @@ def solveCallable(i):
 	while(callable(i)):
 		i=i()
 	return i
-def _render_content(i):
+def _render_content(i,**kwargs):
 	solveCallable(i)
 	if(isinstance(i,Image.Image)):
 		return i
@@ -19,7 +19,7 @@ class widget:
 	def get_rendered_contents(self,**kwargs):
 		ret=list()
 		for i in self.contents:
-			ret.append(_render_content(i))
+			ret.append(_render_content(i,**kwargs))
 		return ret
 	pass
 class column(widget):
@@ -29,7 +29,7 @@ class row(widget):
 	#if row widget has specified height attribute, it will force its children column layout evenly by setting their height attribute.
 	#if row widget has specified width attribute, it will layout children evenly. But won't inherit the attribute to children.
 	def __init__(self,contents,bg=None,borderWidth=None,borderColor=None, \
-	stretchHeight=None,expandHeight=None,cropHeight=None,alignY=None,height=None,width=None):
+	stretchHeight=None,expandHeight=None,cropHeight=None,alignY=None,height=None,width=None,stretchWH=None):
 		self.contents=contents
 		self.stretchHeight=stretchHeight
 		self.expandHeight=expandHeight
@@ -40,6 +40,7 @@ class row(widget):
 		self.alignY=alignY
 		self.height=height
 		self.width=width
+		self.stretchWH=stretchWH
 	def get_rendered_contents(self,**kwargs):
 		if(self.height):
 			for i in self.contents:
@@ -61,7 +62,10 @@ class row(widget):
 		kwargs['alignY']=alignY
 		
 		r_contents=self.get_rendered_contents(**kwargs)
-		
+		if(self.stretchWH):
+			for idx,i in enumerate(r_contents):
+				i=i.resize(self.stretchWH,Image.LANCZOS)
+				r_contents[idx]=i
 		if(self.stretchHeight):
 			for idx,i in enumerate(r_contents):
 				i=resize.stretchHeight(i,self.stretchHeight)
@@ -95,9 +99,10 @@ class row(widget):
 		return ret
 class column(widget):
 	def __init__(self,contents,bg=None,borderWidth=None,borderColor=None, \
-	stretchWidth=None,expandWidth=None,cropWidth=None,alignX=None,height=None,width=None):
+	stretchWidth=None,expandWidth=None,cropWidth=None,alignX=None,height=None,width=None,stretchWH=None):
 		self.contents=contents
 		self.stretchWidth=stretchWidth
+		self.stretchWH=stretchWH
 		self.expandWidth=expandWidth
 		self.cropWidth=cropWidth
 		self.bg=bg
@@ -126,7 +131,10 @@ class column(widget):
 		kwargs['alignX']=alignX
 		
 		r_contents=self.get_rendered_contents(**kwargs)
-		
+		if(self.stretchWH):
+			for idx,i in enumerate(r_contents):
+				i=i.resize(self.stretchWH,Image.LANCZOS)
+				r_contents[idx]=i
 		if(self.stretchWidth):
 			for idx,i in enumerate(r_contents):
 				i=resize.stretchWidth(i,self.stretchWidth)
@@ -167,7 +175,7 @@ class sizer(widget):
 		self.expandWidth=expandWidth
 		self.stretchWH=stretchWH
 	def render(self,**kwargs):
-		ret=_render_content(self.content)
+		ret=_render_content(self.content,**kwargs)
 		if(self.stretchWH):
 			ret=ret.resize(self.stretchWH,Image.LANCZOS)
 			return ret
@@ -180,7 +188,8 @@ class sizer(widget):
 if(__name__=='__main__'):
 	im=Image.open(r"C:\Users\xiaofan\Downloads\img2svg\WPxSwEYVtfm6Ba1.png")
 	
-	row1=row([im]*2,stretchHeight=130,borderWidth=10)
+	row1=row([im]*2,stretchWH=(200,120),borderWidth=10)
 	row2=row([im]*3,stretchHeight=120,borderWidth=10)
-	col1=column([row1,row2],borderWidth=10,bg=c_color_WHITE)
+	row3=sizer(row2,stretchWH=(400,100))
+	col1=column([row1,row2,row3],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()
