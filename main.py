@@ -10,7 +10,7 @@ def solveCallable(i):
 def _render_content(i,**kwargs):
 	solveCallable(i)
 	if(isinstance(i,Image.Image)):
-		return i
+		return i.convert("RGBA")
 	elif(isinstance(i,widget)):
 		return i.render(**kwargs)
 	else:
@@ -94,7 +94,7 @@ class row(widget):
 			w,h=i.size
 			left+=borderWidthX
 			top=int(borderWidth+(mxHeight-h)*alignY)
-			ret.paste(i,(int(left),top))
+			ret.paste(i,box=(int(left),top),mask=i)
 			left+=w
 		return ret
 class column(widget):
@@ -163,7 +163,7 @@ class column(widget):
 			w,h=i.size
 			top+=borderWidthY
 			left=int(borderWidth+(mxWidth-w)*alignX)
-			ret.paste(i,(int(left),int(top)))
+			ret.paste(i,box=(int(left),int(top)),mask=i)
 			top+=h
 		return ret
 class sizer(widget):
@@ -185,11 +185,13 @@ class sizer(widget):
 		if(self.stretchHeight):
 			ret=resize.stretchHeight(ret,self.stretchHeight)
 			return ret
+class text(widget):
+	def __init_(self,
 if(__name__=='__main__'):
-	im=Image.open(r"C:\Users\xiaofan\Downloads\img2svg\WPxSwEYVtfm6Ba1.png")
+	im=Image.open(r"C:\Users\xiaofan\AppData\Roaming\Typora\themes\autumnus-assets\XiQW8UwuDOf1gjN.png")
 	
 	row1=row([im]*2,stretchWH=(200,120),borderWidth=10)
 	row2=row([im]*3,stretchHeight=120,borderWidth=10)
-	row3=sizer(row2,stretchWH=(400,100))
+	row3=sizer(row2,stretchWH=(300,30))
 	col1=column([row1,row2,row3],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()
