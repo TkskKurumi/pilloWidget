@@ -3,6 +3,7 @@ from constants import *
 import resize
 #const:
 #c_color_* for const colors
+import mylocale
 def solveCallable(i):
 	while(callable(i)):
 		i=i()
@@ -185,8 +186,14 @@ class sizer(widget):
 		if(self.stretchHeight):
 			ret=resize.stretchHeight(ret,self.stretchHeight)
 			return ret
+
 class text(widget):
-	def __init_(self,
+	#content should be str or callable object that returns str
+	def __init__(self,content,font=None):
+		self.font=None
+	def render(self,**kwargs):
+		font=self.font or kwargs.get('font') or mylocale.get_default_font()
+		
 if(__name__=='__main__'):
 	im=Image.open(r"C:\Users\xiaofan\AppData\Roaming\Typora\themes\autumnus-assets\XiQW8UwuDOf1gjN.png")
 	
