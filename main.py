@@ -1,15 +1,15 @@
-from PIL import Image
+from PIL import Image,ImageFont
 from constants import *
 import resize
 #const:
 #c_color_* for const colors
 import mylocale
-def solveCallable(i):
+def solveCallable(i,**kwargs):
 	while(callable(i)):
-		i=i()
+		i=i(**kwargs)
 	return i
 def _render_content(i,**kwargs):
-	solveCallable(i)
+	solveCallable(i,**kwargs)
 	if(isinstance(i,Image.Image)):
 		return i.convert("RGBA")
 	elif(isinstance(i,widget)):
@@ -186,14 +186,32 @@ class sizer(widget):
 		if(self.stretchHeight):
 			ret=resize.stretchHeight(ret,self.stretchHeight)
 			return ret
-
+class setfont(widget):
+	#used to pass font attribute down to children widgets
+	def __init__(self,content,font=None,fontSize=None):
+		self.font=font
+		self.fontSize=fontSize
+		self.content=content
+		self.lang=lang
+	def render(self,**kwargs):
+		kwargs['font']=self.font or kwargsget('font')
+		kwargs['fontSize']=self.fontSize or kwargs.get('fontSize')
+		kwargs['lang']=self.lang or kwargs.get('lang')
+		return self.content.render(**kwargs)
 class text(widget):
 	#content should be str or callable object that returns str
-	def __init__(self,content,font=None):
-		self.font=None
+	def __init__(self,content,font=None,fontSize=None,bg=None):
+		self.font=font
+		self.fontSize=fontSize
+		self.bg=bg
 	def render(self,**kwargs):
 		font=self.font or kwargs.get('font') or mylocale.get_default_font()
-		
+		fontSize=self.fontSize or kwargs.get('fontSize') or 12
+		lang=self.lang or kwargs.get('lang') or mylocale.get_default_lang()
+		bg=self.
+		fnt=ImageFont.truetype(font,fontSize)
+		size=fnt.getsize(solveCallable(self.content),language=lang)
+		ret=Image.new("RGBA",size,c_color_TRANSPARENT)
 if(__name__=='__main__'):
 	im=Image.open(r"C:\Users\xiaofan\AppData\Roaming\Typora\themes\autumnus-assets\XiQW8UwuDOf1gjN.png")
 	
