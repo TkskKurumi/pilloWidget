@@ -9,13 +9,14 @@ def solveCallable(i,**kwargs):
 		i=i(**kwargs)
 	return i
 def _render_content(i,**kwargs):
-	solveCallable(i,**kwargs)
+	i=solveCallable(i,**kwargs)
 	if(isinstance(i,Image.Image)):
 		return i.convert("RGBA")
 	elif(isinstance(i,widget)):
 		return i.render(**kwargs)
 	else:
-		raise Exception("Unsupported widget content")
+		
+		raise Exception("Unsupported widget content %s"%i+" "+str(callable(i)))
 class widget:
 	def get_rendered_contents(self,**kwargs):
 		ret=list()
@@ -289,9 +290,9 @@ class richText(widget):
 						ret+=i.size[0]
 			return ret
 		
-		
+		__contents=solveCallable(self.contents,**kwargs)
 		_contents=list()
-		for i in self.contents:
+		for i in __contents:
 			try:
 				content=_render_content(i,**kwargs)
 			except Exception as e:
@@ -384,7 +385,7 @@ class avatarCircle(widget):
 		
 		kwargs['bg']=bg
 		
-		content=_render_content(self.content)
+		content=_render_content(self.content,**kwargs)
 		if(self.size is None):
 			size=min(content.size)
 		else:
@@ -397,6 +398,76 @@ class avatarCircle(widget):
 		ret=Image.new("RGBA",(size,size),tuple(bg))
 		ret.paste(content,mask=mask)
 		return ret
+class bubble(widget):
+	def __init__(self,content,kwa):
+		self.content=content
+		self.resources=resources
+	def from_dir(content,pth,**kwa):
+		#left-upper upper right-upper left middle right left-lower lower right-lower
+		
+		for i in ['lu','up','ru','le','mi','ri','ll','lo','rl']:
+			if(path.exists(path.join(pth,i+'.png'))):
+				kwa[i]=Image.open(path.exists(path.join(pth,i+'.png')))
+		return bubble(content,kwa)
+	def render(self,**kwargs):
+		kwa=dict()
+		kwa.update(self.kwa)
+		kwa.update(**kwargs)
+		img=_render_content(self.content,**kwargs)
+		lu=kwa.get('lu')
+		up=kwa.get('up')
+		ru=kwa.get('ru')
+		le=kwa.get('le')
+		mi=kwa.get('mi')
+		ri=kwa.get('ri')
+		ll=kwa.get('ll')
+		lo=kwa.get('lo')
+		rl=kwa.get('rl')
+		border_size=kwa.get('border_size')
+		mid_border_size=kwa.get('mid_border_size')
+		if(border_size is None):
+			border_size=int(img.size[1]/2.1)
+		if(mid_border_size is None):
+			mid_border_size=int(border_size/1.618)
+		_,__=img.size
+		_-=2*(border_size-mid_border_size)
+		__-=2*(border_size-mid_border_size)
+		bs=border_size
+		w,h=_+border_size*2,__+border_size*2
+		ret=Image.new("RGBA",(w,h))
+		ret1=Image.new("RGBA",(w,h))
+		if(ru is None):
+			ru=lu.transpose(Image.FLIP_LEFT_RIGHT)
+		if(ri is None):
+			ri=le.transpose(Image.FLIP_LEFT_RIGHT)
+		if(rl is None):
+			rl=lu.transpose(Image.ROTATE_180)
+		if(lo is None):
+			lo=up.transpose(Image.FLIP_TOP_BOTTOM)
+		if(ll is None):
+			ll=lu.transpose(Image.FLIP_TOP_BOTTOM)
+		
+		ret.paste(lu.resize((bs,bs),Image.LANCZOS),(0,0))
+		ret.paste(up.resize((_,bs),Image.LANCZOS),(bs,0))
+		ret.paste(ru.resize((bs,bs),Image.LANCZOS),(bs+_,0))
+		#ret.show()
+		
+		
+		ret.paste(le.resize((bs,__),Image.LANCZOS),(0,bs))
+		ret.paste(mi.resize((_,__),Image.LANCZOS),(bs,bs))
+		ret.paste(ri.resize((bs,__),Image.LANCZOS),(bs+_,bs))
+		#ret.show()
+		
+		ret.paste(ll.resize((bs,bs),Image.LANCZOS),(0,bs+__))
+		ret.paste(lo.resize((_,bs),Image.LANCZOS),(bs,bs+__))
+		ret.paste(rl.resize((bs,bs),Image.LANCZOS),(bs+_,bs+__))
+		#ret.show()
+		
+		ret1.paste(img,(mid_border_size,mid_border_size))
+		#print(bs,mid_border_size)
+		#ret1.show()
+		return Image.alpha_composite(ret,ret1)
+		
 if(__name__=='__main__'):	#test
 
 	def textFunction(**kwargs):
