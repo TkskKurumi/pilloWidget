@@ -401,15 +401,16 @@ class avatarCircle(widget):
 class bubble(widget):
 	def __init__(self,content,kwa):
 		self.content=content
-		self.resources=resources
+		self.kwa=kwa
 	def from_dir(content,pth,**kwa):
 		#left-upper upper right-upper left middle right left-lower lower right-lower
-		
+		from os import path
 		for i in ['lu','up','ru','le','mi','ri','ll','lo','rl']:
 			if(path.exists(path.join(pth,i+'.png'))):
-				kwa[i]=Image.open(path.exists(path.join(pth,i+'.png')))
+				kwa[i]=Image.open(path.join(pth,i+'.png'))
 		return bubble(content,kwa)
 	def render(self,**kwargs):
+		
 		kwa=dict()
 		kwa.update(self.kwa)
 		kwa.update(**kwargs)
@@ -426,7 +427,7 @@ class bubble(widget):
 		border_size=kwa.get('border_size')
 		mid_border_size=kwa.get('mid_border_size')
 		if(border_size is None):
-			border_size=int(img.size[1]/2.1)
+			border_size=int(img.size[1])
 		if(mid_border_size is None):
 			mid_border_size=int(border_size/1.618)
 		_,__=img.size
@@ -489,3 +490,6 @@ if(__name__=='__main__'):	#test
 	col1=column([row1,row2,row3,row4],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()
 	
+	bubble_content=richText('嗯喵啊喵喵\n啊这啊这',width=300,fontSize=36)
+	a=bubble.from_dir(bubble_content,r'C:\pilloWidget\samples\bubble',border_size=36)
+	a.render().show()
