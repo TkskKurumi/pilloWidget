@@ -51,7 +51,7 @@ class row(widget):
 		return super().get_rendered_contents(**kwargs)
 	def render(self,**kwargs):
 		#**kwargs are inherited attributes like bg color from parznt downwards to children when render
-		print(kwargs)
+		
 		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
 		borderWidth=self.borderWidth or kwargs.get('borderWidth') or 0
 		borderColor=self.borderColor or kwargs.get('borderColor') or bg
@@ -211,39 +211,28 @@ class setkwargs(widget):
 		return _render_content(self.content,**kwargs)
 class _lineFeed:
 	pass
-class RTF(widget):
-	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None):
+class richText(widget):
+	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None,alignX=None,dont_split=False):
 		self.width=width
+		self.alignX=alignX
 		self.alignY=alignY
 		self.font=font
 		self.fontSize=fontSize
 		self.bg=bg
 		self.fill=fill
 		self.contents=contents
+		self.dont_split=dont_split
 	def render(self,**kwargs):
 		font=self.font or kwargs.get('font') or mylocale.get_default_font()
 		fontSize=self.fontSize or kwargs.get('fontSize') or 12
 		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
 		fill=self.fill or kwargs.get('fill') or c_color_BLACK
 		width=self.width or kwargs.get('width')
+		alignX=self.alignX or kwargs.get('alignX') or 0.5
+		alignY=self.alignY or kwargs.get('alignY') or 0.5
 		
-		_contents=list()
-		for i in self.contents:
-			try:
-				content=_render_content(i,**kwargs)
-			except Exception as e:
-				if(isinstance(i,str)):
-					content=solveCallable(i,**kwargs)	#is string
-				else:
-					raise e
-			if(isinstance(content,str)):
-				for j in content:
-					if(j=='\n'):
-						_contents.append(_lineFeed())
-					else:
-						_contents.append(j)
-		rows=list()
-		_row=list()
+		fnt=ImageFont.truetype(font,fontSize)
+		
 		def render_text(text):
 			if(not text):
 				return Image.new("RGBA",(1,fontSize),tuple(bg))
@@ -264,15 +253,17 @@ class RTF(widget):
 					now_str+=i
 				elif(isinstance(i,Image.Image) or isinstance(i,_lineFeed)):
 					if(now_str):
+						
 						_text_rendered.append(render_text(now_str))
 						now_str=''
 					if(isinstance(i,Image.Image)):
 						_text_rendered.append(i)
+			
 			for i in _text_rendered:
 				w,h=i.size
 				width+=w
 				height=max(height,h)
-			ret=Image.new("RGBA",(width,height),bg)
+			ret=Image.new("RGBA",(width,height),tuple(bg))
 			left=0
 			for i in _text_rendered:
 				w,h=i.size
@@ -281,6 +272,7 @@ class RTF(widget):
 				left+=w
 			return ret
 		def calc_row_width(_row):
+			nonlocal fnt
 			if(not _row):
 				return 0
 			now_str=""
@@ -296,9 +288,67 @@ class RTF(widget):
 					if(isinstance(i,Image.Image)):
 						ret+=i.size[0]
 			return ret
-		for i in _contents:
-			
 		
+		
+		_contents=list()
+		for i in self.contents:
+			try:
+				content=_render_content(i,**kwargs)
+			except Exception as e:
+				if(isinstance(i,str)):
+					content=solveCallable(i,**kwargs)	#is string
+				else:
+					raise e
+			if(isinstance(content,str)):
+				if(self.dont_split):
+					for jdx,j in enumerate(content.split('\n')):
+						if(jdx!=0):
+							_contents.append(_lineFeed())
+						else:
+							_contents.append(j)
+				else:
+					for j in content:
+						if(j=='\n'):
+							_contents.append(_lineFeed())
+						else:
+							_contents.append(j)
+			elif(isinstance(content,Image.Image)):
+				if(content.width>width):
+					content=resize.stretchWidth(content,width)
+				_contents.append(content)
+		
+		rows=list()
+		_row=[_lineFeed()]
+		
+		for i in _contents:
+			if(isinstance(i,_lineFeed)):
+				rows.append(_row)
+				_row=[_lineFeed()]
+				continue
+			_row.insert(-1,i)
+			if(calc_row_width(_row)>width):
+				_row.pop(-2)
+				rows.append(_row)
+				_row=[i,_lineFeed()]
+		rows.append(_row)
+		
+		rows=[render_row(_row) for _row in rows]
+		
+		width=0
+		height=0
+		for i in rows:
+			w,h=i.size
+			width=max(width,w)
+			height+=h
+		ret=Image.new("RGBA",(width,height),tuple(bg))
+		top=0
+		for i in rows:
+			w,h=i.size
+			left=int((width-w)*alignX)
+			ret.paste(i,box=(left,top),mask=i)
+			top+=h
+		
+		return ret
 class text(widget):
 	#content should be str or callable object that returns str
 	def __init__(self,content,font=None,fontSize=None,bg=None,lang=None,fill=None):
@@ -331,9 +381,16 @@ if(__name__=='__main__'):
 		return datetime.now().strftime("%Y%m%d\n%H%M\n")+"嗯喵め😀"
 
 	im=Image.open(r"M:\pic\夜巡\小清水.png")
-	row1=row([im]*2,stretchWH=(200,120),borderWidth=10)
-	row2=row([im]*3,stretchHeight=120,borderWidth=10)
+	rich_text=richText(['你好',"a very very long string that exceeds the width limit will return line","\nmulti line \\n\nsupport",im],width=250)
+	splited="If you want words won't be splited into multi lines, you should mannualy split them and have dont_split parameter true".split()
+	splited=[i+' ' for idx,i in enumerate(splited)]
+	rich_text1=richText(splited,dont_split=True,width=250)
+	row1=row([im]*2+[rich_text],stretchHeight=233,borderWidth=10)
+	
+	row2=row([im]*3+[rich_text1],stretchHeight=120,borderWidth=10)
 	row3=sizer(row2,stretchWH=(300,30))
 	row4=text(textFunction)
+	
 	col1=column([row1,row2,row3,row4],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()
+	
