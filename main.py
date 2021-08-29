@@ -1,4 +1,4 @@
-from PIL import Image,ImageFont
+from PIL import Image,ImageFont,ImageDraw
 from constants import *
 import resize
 #const:
@@ -168,15 +168,19 @@ class column(widget):
 			top+=h
 		return ret
 class sizer(widget):
-	def __init__(self,content,stretchWH=None,stretchWidth=None,stretchHeight=None,expandHeight=None,expandWidth=None):
+	def __init__(self,content,stretchWH=None,stretchWidth=None,stretchHeight=None,expandHeight=None,expandWidth=None,cropWH=None):
 		self.content=content
 		self.stretchWidth=stretchWidth
 		self.stretchHeight=stretchHeight
 		self.expandHeight=expandHeight
 		self.expandWidth=expandWidth
 		self.stretchWH=stretchWH
+		self.cropWH=cropWH
 	def render(self,**kwargs):
 		ret=_render_content(self.content,**kwargs)
+		if(self.cropWH):
+			ret=resize.cropWH(ret,cropWH)
+			return ret
 		if(self.stretchWH):
 			ret=ret.resize(self.stretchWH,Image.LANCZOS)
 			return ret
@@ -198,25 +202,138 @@ class setfont(widget):
 		kwargs['fontSize']=self.fontSize or kwargs.get('fontSize')
 		kwargs['lang']=self.lang or kwargs.get('lang')
 		return self.content.render(**kwargs)
-class text(widget):
-	#content should be str or callable object that returns str
-	def __init__(self,content,font=None,fontSize=None,bg=None):
+class setkwargs(widget):
+	def __init__(self,content,**kwargs):
+		self.content=content
+		self.kwargs=kwargs
+	def render(self,**kwargs):
+		kwargs.update(self.kwargs)
+		return _render_content(self.content,**kwargs)
+class _lineFeed:
+	pass
+class RTF(widget):
+	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None):
+		self.width=width
+		self.alignY=alignY
 		self.font=font
 		self.fontSize=fontSize
 		self.bg=bg
+		self.fill=fill
+		self.contents=contents
 	def render(self,**kwargs):
 		font=self.font or kwargs.get('font') or mylocale.get_default_font()
 		fontSize=self.fontSize or kwargs.get('fontSize') or 12
-		lang=self.lang or kwargs.get('lang') or mylocale.get_default_lang()
-		bg=self.
+		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
+		fill=self.fill or kwargs.get('fill') or c_color_BLACK
+		width=self.width or kwargs.get('width')
+		
+		_contents=list()
+		for i in self.contents:
+			try:
+				content=_render_content(i,**kwargs)
+			except Exception as e:
+				if(isinstance(i,str)):
+					content=solveCallable(i,**kwargs)	#is string
+				else:
+					raise e
+			if(isinstance(content,str)):
+				for j in content:
+					if(j=='\n'):
+						_contents.append(_lineFeed())
+					else:
+						_contents.append(j)
+		rows=list()
+		_row=list()
+		def render_text(text):
+			if(not text):
+				return Image.new("RGBA",(1,fontSize),tuple(bg))
+			size=fnt.getsize(text)
+			ret=Image.new("RGBA",size,tuple(c_color_TRANSPARENT))
+			dr=ImageDraw.Draw(ret)
+			dr.text((0,0),text,font=fnt,fill=tuple(fill))
+			return ret
+		def render_row(_row):
+			if(not _row):
+				return Image.new("RGBA",(1,fontSize),tuple(bg))
+			width=0
+			height=0
+			now_str=""
+			_text_rendered=[]
+			for i in _row:
+				if(isinstance(i,str)):
+					now_str+=i
+				elif(isinstance(i,Image.Image) or isinstance(i,_lineFeed)):
+					if(now_str):
+						_text_rendered.append(render_text(now_str))
+						now_str=''
+					if(isinstance(i,Image.Image)):
+						_text_rendered.append(i)
+			for i in _text_rendered:
+				w,h=i.size
+				width+=w
+				height=max(height,h)
+			ret=Image.new("RGBA",(width,height),bg)
+			left=0
+			for i in _text_rendered:
+				w,h=i.size
+				upper=int((height-h)*alignY)
+				ret.paste(i,box=(left,upper),mask=i)
+				left+=w
+			return ret
+		def calc_row_width(_row):
+			if(not _row):
+				return 0
+			now_str=""
+			ret=0
+			for i in _row:
+				if(isinstance(i,str)):
+					now_str+=i
+				elif(isinstance(i,Image.Image) or isinstance(i,_lineFeed)):
+					if(now_str):
+						#_text_rendered.append(render_text(now_str))
+						ret+=fnt.getsize(now_str)[0]
+						now_str=''
+					if(isinstance(i,Image.Image)):
+						ret+=i.size[0]
+			return ret
+		for i in _contents:
+			
+		
+class text(widget):
+	#content should be str or callable object that returns str
+	def __init__(self,content,font=None,fontSize=None,bg=None,lang=None,fill=None):
+		self.font=font
+		self.fontSize=fontSize
+		self.bg=bg
+		self.fill=fill
+		self.content=content
+		#self.lang=lang
+	def render(self,**kwargs):
+		font=self.font or kwargs.get('font') or mylocale.get_default_font()
+		fontSize=self.fontSize or kwargs.get('fontSize') or 12
+		#lang=self.lang or kwargs.get('lang') or mylocale.get_default_lang()
+		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
+		fill=self.fill or kwargs.get('fill') or c_color_BLACK
+		
+		content=solveCallable(self.content,**kwargs)
+		
+		
 		fnt=ImageFont.truetype(font,fontSize)
-		size=fnt.getsize(solveCallable(self.content),language=lang)
-		ret=Image.new("RGBA",size,c_color_TRANSPARENT)
+		size=fnt.getsize_multiline(content)
+		ret=Image.new("RGBA",size,tuple(bg))
+		dr=ImageDraw.Draw(ret)
+		dr.multiline_text((0,0),content,font=fnt,fill=tuple(fill))
+		return ret
 if(__name__=='__main__'):
-	im=Image.open(r"C:\Users\xiaofan\AppData\Roaming\Typora\themes\autumnus-assets\XiQW8UwuDOf1gjN.png")
-	
+
+	def textFunction(**kwargs):
+		from datetime import datetime
+		return datetime.now().strftime("%Y%m%d\n%H%M\n")+"嗯喵め😀"
+
+	im=Image.open(r"M:\pic\夜巡\小清水.png")
 	row1=row([im]*2,stretchWH=(200,120),borderWidth=10)
 	row2=row([im]*3,stretchHeight=120,borderWidth=10)
 	row3=sizer(row2,stretchWH=(300,30))
-	col1=column([row1,row2,row3],borderWidth=10,bg=c_color_WHITE)
+	row4=text(textFunction)
+	col1=column([row1,row2,row3,row4],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()

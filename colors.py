@@ -125,5 +125,6 @@ c_color_BLUE_darken=c_color_RED_darken.alterHSV(H=240)
 
 c_color_TRANSPARENT=color(A=0)
 c_color_WHITE=color(255,255,255,255)
+c_color_BLACK=color(0,0,0,255)
 if(__name__=='__main__'):
 	pass
