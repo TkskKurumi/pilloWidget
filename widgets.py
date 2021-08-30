@@ -4,6 +4,11 @@ import resize
 #const:
 #c_color_* for const colors
 import mylocale
+def none_or(*args):
+	for i in args:
+		if(i is not None):
+			return i
+	return None
 def solveCallable(i,**kwargs):
 	while(callable(i)):
 		i=i(**kwargs)
@@ -14,6 +19,8 @@ def _render_content(i,**kwargs):
 		return i.convert("RGBA")
 	elif(isinstance(i,widget)):
 		return i.render(**kwargs)
+	elif(i is None):
+		return None
 	else:
 		
 		raise Exception("Unsupported widget content %s"%i+" "+str(callable(i)))
@@ -56,12 +63,13 @@ class row(widget):
 		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
 		borderWidth=self.borderWidth or kwargs.get('borderWidth') or 0
 		borderColor=self.borderColor or kwargs.get('borderColor') or bg
-		alignY=self.alignY or kwargs.get('alignY') or 0.5
+		#alignY=self.alignY or kwargs.get('alignY') or 1
+		alignY=none_or(self.alignY,kwargs.get('alignY'),0.5)
 		
 		kwargs['bg']=bg						#inherit settings
 		kwargs['borderWidth']=borderWidth
 		kwargs['borderColor']=borderColor
-		kwargs['alignY']=alignY
+		#kwargs['alignY']=alignY
 		
 		r_contents=self.get_rendered_contents(**kwargs)
 		if(self.stretchWH):
@@ -125,7 +133,8 @@ class column(widget):
 		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
 		borderWidth=self.borderWidth or kwargs.get('borderWidth') or 0
 		borderColor=self.borderColor or kwargs.get('borderColor') or bg
-		alignX=self.alignX or kwargs.get('alignX') or 0.5
+		#alignX=self.alignX or kwargs.get('alignX') or 0.5
+		alignX=none_or(self.alignX,kwargs.get('alignX'),0.5)
 		
 		kwargs['bg']=bg						#inherit settings
 		kwargs['borderWidth']=borderWidth
@@ -213,7 +222,7 @@ class setkwargs(widget):
 class _lineFeed:
 	pass
 class richText(widget):
-	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None,alignX=None,dont_split=False):
+	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None,alignX=None,dont_split=False,imageLimit=None,horizontalSpacing=None):
 		self.width=width
 		self.alignX=alignX
 		self.alignY=alignY
@@ -223,14 +232,20 @@ class richText(widget):
 		self.fill=fill
 		self.contents=contents
 		self.dont_split=dont_split
+		self.imageLimit=imageLimit
+		self.horizontalSpacing=True
 	def render(self,**kwargs):
 		font=self.font or kwargs.get('font') or mylocale.get_default_font()
 		fontSize=self.fontSize or kwargs.get('fontSize') or 12
 		bg=self.bg or kwargs.get('bg') or c_color_TRANSPARENT
 		fill=self.fill or kwargs.get('fill') or c_color_BLACK
 		width=self.width or kwargs.get('width')
-		alignX=self.alignX or kwargs.get('alignX') or 0.5
-		alignY=self.alignY or kwargs.get('alignY') or 0.5
+		#alignX=self.alignX or kwargs.get('alignX') or 0.5
+		alignX=none_or(self.alignX,kwargs.get('alignX'),0.1)
+		#alignY=self.alignY or kwargs.get('alignY') or 0.5
+		alignY=none_or(self.alignY,kwargs.get('alignY'),1)
+		imageLimit=self.imageLimit or kwargs.get('imageLimit') or (width/c_golden_ratio,fontSize*4)
+		horizontalSpacing=self.horizontalSpacing or kwargs.get('horizontalSpacing') or int(fontSize/c_golden_ratio)
 		
 		fnt=ImageFont.truetype(font,fontSize)
 		
@@ -254,7 +269,6 @@ class richText(widget):
 					now_str+=i
 				elif(isinstance(i,Image.Image) or isinstance(i,_lineFeed)):
 					if(now_str):
-						
 						_text_rendered.append(render_text(now_str))
 						now_str=''
 					if(isinstance(i,Image.Image)):
@@ -264,30 +278,31 @@ class richText(widget):
 				w,h=i.size
 				width+=w
 				height=max(height,h)
+			width+=horizontalSpacing*(len(_text_rendered)+1)
 			ret=Image.new("RGBA",(width,height),tuple(bg))
-			left=0
+			left=horizontalSpacing
 			for i in _text_rendered:
 				w,h=i.size
 				upper=int((height-h)*alignY)
 				ret.paste(i,box=(left,upper),mask=i)
-				left+=w
+				left+=w+horizontalSpacing
 			return ret
 		def calc_row_width(_row):
 			nonlocal fnt
 			if(not _row):
 				return 0
 			now_str=""
-			ret=0
+			ret=horizontalSpacing
 			for i in _row:
 				if(isinstance(i,str)):
 					now_str+=i
 				elif(isinstance(i,Image.Image) or isinstance(i,_lineFeed)):
 					if(now_str):
 						#_text_rendered.append(render_text(now_str))
-						ret+=fnt.getsize(now_str)[0]
+						ret+=fnt.getsize(now_str)[0]+horizontalSpacing
 						now_str=''
 					if(isinstance(i,Image.Image)):
-						ret+=i.size[0]
+						ret+=i.size[0]+horizontalSpacing
 			return ret
 		
 		__contents=solveCallable(self.contents,**kwargs)
@@ -314,8 +329,9 @@ class richText(widget):
 						else:
 							_contents.append(j)
 			elif(isinstance(content,Image.Image)):
-				if(content.width>width):
-					content=resize.stretchWidth(content,width)
+				'''if(content.width>width):
+					content=resize.stretchWidth(content,width)'''
+				content=resize.stretchIfExceeds(content,imageLimit)
 				_contents.append(content)
 		
 		rows=list()
@@ -398,6 +414,21 @@ class avatarCircle(widget):
 		ret=Image.new("RGBA",(size,size),tuple(bg))
 		ret.paste(content,mask=mask)
 		return ret
+class compositeBG(widget):
+	def __init__(self,content,bg=None):
+		self.content=content
+		self.bg=bg
+	def render(self,**kwargs):
+		content=_render_content(self.content,**kwargs)
+		#BG=_render_content(self.BG).copy()
+		bg=solveCallable(none_or(solveCallable(self.bg,**kwargs),kwargs.get("bg"),c_color_WHITE),**kwargs)
+		if(isinstance(bg,color)):
+			bg=Image.new("RGBA",content.size,tuple(bg))
+		else:
+			bg=_render_content(bg,**kwargs).copy()
+		bg=resize.cropWH(bg,content.size)
+		bg.paste(content,mask=content)
+		return bg
 class bubble(widget):
 	def __init__(self,content,kwa):
 		self.content=content
@@ -409,6 +440,11 @@ class bubble(widget):
 			if(path.exists(path.join(pth,i+'.png'))):
 				kwa[i]=Image.open(path.join(pth,i+'.png'))
 		return bubble(content,kwa)
+	def default(content,**kwa):
+		from os import path
+		pth=path.dirname(__file__)
+		pth=path.join(pth,'samples','bubble')
+		return bubble.from_dir(content,pth,**kwa)
 	def render(self,**kwargs):
 		
 		kwa=dict()
@@ -470,17 +506,19 @@ class bubble(widget):
 		return Image.alpha_composite(ret,ret1)
 		
 if(__name__=='__main__'):	#test
-
+	from os import path
 	def textFunction(**kwargs):
 		from datetime import datetime
 		return datetime.now().strftime("%Y%m%d\n%H%M\n")+"嗯喵め😀"
-
-	im=Image.open(r"M:\pic\夜巡\小清水.png")
-	im1=Image.open(r"C:\pilloWidget\samples\avatar.jpg")
-	rich_text=richText(['你好',"a very very long string that exceeds the width limit will return line","\nmulti line \\n\nsupport",im],width=250)
+	pth=path.dirname(__file__)
+	im=Image.open(path.join(pth,'samples','landscape.png'))
+	#im=Image.open(r"M:\pic\夜巡\小清水.png")
+	im1=Image.open(path.join(pth,'samples','avatar.jpg'))
+	#im1=Image.open(r"C:\pilloWidget\samples\avatar.jpg")
+	rich_text=richText(['你好',"a very very long string that exceeds the width limit will return line","\nmulti line \\n\nsupport",im],width=250,alignY=1)
 	splited="If you want words won't be splited into multi lines, you should mannualy split them and have dont_split parameter true".split()
 	splited=[i+' ' for idx,i in enumerate(splited)]
-	rich_text1=richText(splited,dont_split=True,width=250)
+	rich_text1=richText(splited,dont_split=True,width=250,alignY=1)
 	row1=row([im]*2+[rich_text],stretchHeight=233,borderWidth=10)
 	
 	row2=row([im]*3+[rich_text1],stretchHeight=120,borderWidth=10)
@@ -490,6 +528,7 @@ if(__name__=='__main__'):	#test
 	col1=column([row1,row2,row3,row4],borderWidth=10,bg=c_color_WHITE)
 	col1.render().show()
 	
-	bubble_content=richText('嗯喵啊喵喵\n啊这啊这',width=300,fontSize=36)
-	a=bubble.from_dir(bubble_content,r'C:\pilloWidget\samples\bubble',border_size=36)
+	bubble_content=richText(['嗯喵啊喵喵\n啊这啊这',im1]+[i+' ' for i in 'this is like some IM software message bubble'.split()],width=300,fontSize=36,alignY=1,dont_split=True,alignX=0)
+	#a=bubble.from_dir(bubble_content,r'C:\pilloWidget\samples\bubble',border_size=36)
+	a=bubble.from_dir(bubble_content,path.join(pth,'samples','bubble'),border_size=36)
 	a.render().show()

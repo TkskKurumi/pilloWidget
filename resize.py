@@ -38,6 +38,27 @@ def cropWH(img,size):
 		return cropWidth(stretchHeight(img,height),width)
 	else:
 		return cropHeight(stretchWidth(img,width),height)
+def stretchIfExceeds(im,size):
+	width,height=size
+	w,h=im.size
+	r=w/h
+	if(width and height):
+		rate=width/height
+		if(r>rate):
+			if(w>width):
+				return stretchWidth(im,width)
+		elif(h>height):
+			return stretchHeight(im,height)
+	elif(width):
+		if(w>width):
+			return stretchWidth(im,width)
+	elif(height):
+		if(h>height):
+			return stretchHeight(im,height)
+	return im
 if(__name__=='__main__'):
-	im=Image.open(r"M:\pic\夜巡\小清水2.png")
-	cropWH(im,1000,300).show()
+	im=Image.open(r"C:\Users\xiaofan\Downloads\pilloWidget\samples\avatar.jpg")
+	#cropWH(im,1000,100).show()
+	stretchIfExceeds(im,(80,120)).show()
+	stretchIfExceeds(im,(120,80)).show()
+	
