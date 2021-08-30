@@ -96,8 +96,11 @@ def callable_content_example():
 ```
 
 ![example1](./samples/results/callable_content_example1.png)
+
 callable_content_example1.png
+
 ![example1](./samples/results/callable_content_example2.png)
+
 callable_content_example2.png
 
 ## class row(widget):
