@@ -177,7 +177,7 @@ class column(widget):
 			ret.paste(i,box=(int(left),int(top)),mask=i)
 			top+=h
 		return ret
-class sizer(widget):
+class sizeBox(widget):
 	def __init__(self,content,stretchWH=None,stretchWidth=None,stretchHeight=None,expandHeight=None,expandWidth=None,cropWH=None):
 		self.content=content
 		self.stretchWidth=stretchWidth
@@ -200,6 +200,36 @@ class sizer(widget):
 		if(self.stretchHeight):
 			ret=resize.stretchHeight(ret,self.stretchHeight)
 			return ret
+		if(self.expandHeight):
+			if(isinstance(expandHeight,tuple)):
+				size,bg=expandHeight
+				ret=resize.expandHeight(ret,size,bg)
+				return ret
+			else:
+				size=expandHeight
+				bg=kwargs.get("bg") or c_color_TRANSPARENT
+				ret=resize.expandHeight(ret,size,bg)
+				return ret
+		if(self.expandWidth):
+			if(isinstance(expandWidth,tuple)):
+				size,bg=expandWidth
+				ret=resize.expandWidth(ret,size,bg)
+				return ret
+			else:
+				size=expandWidth
+				bg=kwargs.get("bg") or c_color_TRANSPARENT
+				ret=resize.expandWidth(ret,size,bg)
+				return ret
+		if(self.expandWH):
+			size,bg=expandWH
+			if(isinstance(bg,tuple)):
+				ret=resize.expandWH(ret,size,bg)
+				return ret
+			else:
+				size=size,bg
+				bg=kwargs.get("bg") or c_color_TRANSPARENT
+				ret=resize.expandWH(ret,size,bg)
+				return ret
 class setfont(widget):
 	#used to pass font attribute down to children widgets
 	def __init__(self,content,font=None,fontSize=None):
@@ -219,10 +249,11 @@ class setkwargs(widget):
 	def render(self,**kwargs):
 		kwargs.update(self.kwargs)
 		return _render_content(self.content,**kwargs)
+setKwargs=setkwargs
 class _lineFeed:
 	pass
 class richText(widget):
-	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None,alignX=None,dont_split=False,imageLimit=None,horizontalSpacing=None):
+	def __init__(self,contents,width,font=None,fontSize=None,bg=None,lang=None,fill=None,alignY=None,alignX=None,dont_split=False,imageLimit=None,horizontalSpacing=None,autoSplit=True):
 		self.width=width
 		self.alignX=alignX
 		self.alignY=alignY
@@ -234,6 +265,7 @@ class richText(widget):
 		self.dont_split=dont_split
 		self.imageLimit=imageLimit
 		self.horizontalSpacing=True
+		self.autoSplit=autoSplit
 	def render(self,**kwargs):
 		font=self.font or kwargs.get('font') or mylocale.get_default_font()
 		fontSize=self.fontSize or kwargs.get('fontSize') or 12
@@ -306,6 +338,14 @@ class richText(widget):
 			return ret
 		
 		__contents=solveCallable(self.contents,**kwargs)
+		if(self.autoSplit):
+			___contents=list()
+			for i in __contents:
+				if(isinstance(i,str)):
+					___contents.extend([j+' ' for j in i.split()])
+				else:
+					___contents.append(i)
+			__contents=___contents
 		_contents=list()
 		for i in __contents:
 			try:
@@ -505,7 +545,7 @@ class bubble(widget):
 		#ret1.show()
 		return Image.alpha_composite(ret,ret1)
 		
-if(__name__=='__main__'):	#test
+if(False and __name__=='__main__'):	#test
 	from os import path
 	def textFunction(**kwargs):
 		from datetime import datetime
@@ -522,7 +562,7 @@ if(__name__=='__main__'):	#test
 	row1=row([im]*2+[rich_text],stretchHeight=233,borderWidth=10)
 	
 	row2=row([im]*3+[rich_text1],stretchHeight=120,borderWidth=10)
-	row3=sizer(row2,stretchWH=(300,30))
+	row3=sizeBox(row2,stretchWH=(300,30))
 	row4=row([text(textFunction),avatarCircle(im1,size=200)])
 	
 	col1=column([row1,row2,row3,row4],borderWidth=10,bg=c_color_WHITE)
@@ -532,3 +572,9 @@ if(__name__=='__main__'):	#test
 	#a=bubble.from_dir(bubble_content,r'C:\pilloWidget\samples\bubble',border_size=36)
 	a=bubble.from_dir(bubble_content,path.join(pth,'samples','bubble'),border_size=36)
 	a.render().show()
+if(__name__=='__main__'):
+	a=text('content1',fill=c_color_RED)
+	b=text('content2',fill=c_color_GREEN)
+	c=text('content3',fill=c_color_BLUE)
+	r=row([a,b,c],bg=c_color_WHITE)
+	r.render().show()

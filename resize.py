@@ -11,16 +11,18 @@ def stretchWidth(img,width):
 	return img.resize((width,h),Image.LANCZOS)
 def expandHeight(img,height,bg=(0,0,0,0)):
 	w,h=img.size
-	ret=Image.new(img.mode,(w,height),bg)
+	ret=Image.new(img.mode,(w,height),tuple(bg))
 	top=int((height-h)/2)
 	ret.paste(img,box=(0,top),mask=img)
 	return ret
 def expandWidth(img,width,bg=(0,0,0,0)):
 	w,h=img.size
-	ret=Image.new(img.mode,(width,h),bg)
+	ret=Image.new(img.mode,(width,h),tuple(bg))
 	left=int((width-w)/2)
 	ret.paste(img,box=(left,0),mask=img)
 	return ret
+def expandWH(img,size,bg=(0,0,0,0)):
+	return expand
 def cropWidth(img,width):
 	w,h=img.size
 	left=int((w-width)/2)
