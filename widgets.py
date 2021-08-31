@@ -469,6 +469,24 @@ class compositeBG(widget):
 		bg=resize.cropWH(bg,content.size)
 		bg.paste(content,mask=content)
 		return bg
+class addBorder(widget):
+	def __init__(self,content,borderWidth=None,borderColor=None):
+		self.content=content
+		self.borderWidth=borderWidth
+		self.borderColor=borderColor
+	def render(self,**kwargs):
+		content=_render_content(self.content,**kwargs)
+		borderWidth=none_or(self.borderWidth,kwargs.get("borderWidth"))
+		invertBG=None if(kwargs.get("bg") is None) else color.fromany(kwargs.get("bg")).invert()
+		borderColor=none_or(self.borderColor,kwargs.get("borderColor"),invertBG,c_color_TRANSPARENT)
+		w,h=content.size
+		if(borderWidth is None):
+			borderWidth=(w*h)**0.5
+			borderWidth=int(borderWidth/20)
+		width,height=w+borderWidth*2,h+borderWidth*2
+		ret=Image.new("RGBA",(width,height),tuple(borderColor))
+		ret.paste(content,box=(borderWidth,borderWidth))
+		return ret
 class bubble(widget):
 	def __init__(self,content,kwa):
 		self.content=content

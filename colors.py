@@ -1,5 +1,13 @@
 from PIL import ImageColor
 class color:
+	def fromany(x):
+		if(isinstance(x,color)):
+			return x
+		elif(isinstance(x,tuple)):
+			return color.RGBA(*x)
+		else:
+			raise Exception("Cannot convert %s to color"%x)
+	
 	def RGB(R,G,B):
 		return color(R,G,B,255)
 	def HSV(H,S,V):
@@ -37,6 +45,11 @@ class color:
 		V=V or VV
 		A=A or self.A
 		return color.HSVA(H,S,V,A)
+	def invert(self):
+		R=255-self.R
+		G=255-self.G
+		B=255-self.B
+		return self.alter(R,G,B)
 	def __str__(self):
 		return str(self.astuple())
 	def __repr__(self):
