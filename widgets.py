@@ -469,6 +469,16 @@ class compositeBG(widget):
 		bg=resize.cropWH(bg,content.size)
 		bg.paste(content,mask=content)
 		return bg
+compositeAB=compositeBG
+class colorBox(widget):
+	def __init__(self,bg,width,height=None):
+		self.bg=bg
+		self.width=width
+		self.height=none_or(height,width)
+	def render(self,**kwargs):
+		return Image.new("RGBA",(self.width,self.height),tuple(self.bg))
+class gradientBox(widget):
+	pass
 class addBorder(widget):
 	def __init__(self,content,borderWidth=None,borderColor=None):
 		self.content=content
