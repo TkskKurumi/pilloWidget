@@ -3,7 +3,7 @@ from .constants import *
 from . import resize
 #const:
 #c_color_* for const colors
-import mylocale
+from . import mylocale
 def none_or(*args):
 	for i in args:
 		if(i is not None):
