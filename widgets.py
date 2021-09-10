@@ -1,6 +1,6 @@
 from PIL import Image,ImageFont,ImageDraw
-from constants import *
-import resize
+from .constants import *
+from . import resize
 #const:
 #c_color_* for const colors
 import mylocale
