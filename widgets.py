@@ -1,9 +1,15 @@
 from PIL import Image,ImageFont,ImageDraw
-from .constants import *
-from . import resize
+try:
+	from .constants import *
+	from . import resize
+	from . import mylocale
+except ImportError:
+	from constants import *
+	import resize
+	import mylocale
 #const:
 #c_color_* for const colors
-from . import mylocale
+
 def none_or(*args):
 	for i in args:
 		if(i is not None):
