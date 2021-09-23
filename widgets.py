@@ -484,7 +484,52 @@ class colorBox(widget):
 	def render(self,**kwargs):
 		return Image.new("RGBA",(self.width,self.height),tuple(self.bg))
 class gradientBox(widget):
-	pass
+	def __init__(self,width=None,height=None,lu=None,ru=None,ll=None,rl=None):
+		self.lu=lu
+		self.ru=ru
+		self.ll=ll
+		self.rl=rl
+		self.width=width
+		self.height=height
+	def judge_type(self):
+		tmp=lambda x:0 if (x is None) else 1
+		bin=tmp(self.lu)
+		bin|=tmp(self.ru)<<1
+		bin|=tmp(self.ll)<<2
+		bin|=tmp(self.rl)<<3
+		return bin
+	def render(self,**kwargs):
+		width=self.width or kwargs.get('grad_width') or 512
+		height=self.height or kwargs.get('grad_height') or 512
+
+		type=self.judge_type()
+		
+		ret=Image.new("RGBA",(width,height))
+		def get(x,y):
+			x_norm=x/width
+			y_norm=y/height
+			if(type==0b1010):	#lu set and ll set, verticle
+				return self.ll*y_norm+self.lu*(1-y_norm)
+			elif(type==0b1100):	#lu set and ru set, horizontal
+				return self.ru*x_norm+self.ru*(1-x_norm)
+			elif(type==0b1001):	#lu set and rl set, ////
+				x_=(x_norm+y_norm)/2
+				return self.lu*(1-x_)+self.rl*x_
+			elif(type==0b0110):	#ll set and ru set, \\\\
+				x_=(x_norm+1-y_norm)/2
+				return self.ll*(1-x_)+self.ru*x_
+			else:
+				_=['lu','ru','ll','rl'][::-1]
+				__=[]
+				for i in range(4):
+					if(type & (1<<i)):
+						__.append(_[i])
+				raise Exception("Unsupported gradient(%s)"%(",".join(__)))
+		for x in range(width):
+			for y in range(height):
+				ret.putpixel((x,y),tuple(get(x,y)))
+		del get
+		return ret
 class addBorder(widget):
 	def __init__(self,content,borderWidth=None,borderColor=None):
 		self.content=content
@@ -578,7 +623,50 @@ class bubble(widget):
 		#print(bs,mid_border_size)
 		#ret1.show()
 		return Image.alpha_composite(ret,ret1)
+class progressBar(widget):
+	def __init__(self,width,bg=None,fill=None,height=None,progress=None,borderColor=None,resizeMethod=resize.cropWH,borderWidth=None):
+		self.bg=bg
+		self.fill=fill
+		self.width=width
+		self.height=height	#outer height
+		self.progress=progress
+		self.borderWidth=borderWidth
+		self.borderColor=borderColor
+		self.resizeMethod=resizeMethod
+	def render(self,**kwargs):
+		progress=none_or(self.progress,kwargs.get('progress'))
+		progress=solveCallable(progress,**kwargs)
+		bg=tuple(none_or(self.bg,kwargs.get("bg"),c_color_WHITE))
+		fill=solveCallable(none_or(self.fill,kwargs.get("fill"),c_color_BLUE_lighten),**kwargs)
+		width=self.width
+		height=none_or(self.height,width//10)
+		borderWidth=none_or(self.borderWidth,int(height/6))
+		borderColor=tuple(none_or(self.borderColor,c_color_MIKU_darken))
+
+		bw=int(borderWidth)
+		pw=(width-bw*2)*progress
 		
+		ret=Image.new("RGBA",(width,height),borderColor)
+		dr=ImageDraw.Draw(ret)
+		dr.rectangle((bw,bw,width-bw-1,height-bw-1),fill=bg)
+		if(isinstance(fill,tuple) or isinstance(fill,color)):
+			if(isinstance(fill,color)):
+				fill=tuple(fill)
+			dr.rectangle((bw,bw,bw+pw,height-bw),fill=fill)
+		elif(isinstance(fill,widget) or isinstance(fill,Image.Image)):
+			pw=int(pw)
+			ph=int(height-bw*2)
+			if(isinstance(fill,widget)):
+				kwa={}
+				kwa.update({'progbar_width':pw,'grad_width':pw})
+				kwa.update({'progbar_height':pw,'grad_height':ph})
+				fill=fill.render(**kwargs)
+			size=pw,ph
+			fill=self.resizeMethod(fill,size)
+			ret.paste(fill,box=(bw,bw),mask=fill)
+		else:
+			raise Exception("Unsupported progress bar fill %s"%fill)
+		return ret
 if(False and __name__=='__main__'):	#test
 	from os import path
 	def textFunction(**kwargs):
@@ -611,4 +699,11 @@ if(__name__=='__main__'):
 	b=text('content2',fill=c_color_GREEN)
 	c=text('content3',fill=c_color_BLUE)
 	r=row([a,b,c],bg=c_color_WHITE)
+	#r.render().show()
+
+	box=gradientBox(ll=c_color_MIKU,ru=c_color_BLUE_lighten)
+	#box.render().show()
+	r=progressBar(512,progress=0.5,fill=box)
+	r.render().show()
+	r.borderWidth=0
 	r.render().show()

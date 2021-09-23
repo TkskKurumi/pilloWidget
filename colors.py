@@ -24,7 +24,7 @@ class color:
 		self.B=B
 		self.A=A
 	def astuple(self):
-		return (self.R,self.G,self.B,self.A)
+		return (int(self.R),int(self.G),int(self.B),int(self.A))
 	def darken(self,rate=0.5):		#doesn't change self values when darken/lighten is called
 		RGBA=darken(self.astuple(),rate=rate)
 		return color(*RGBA)
@@ -56,7 +56,38 @@ class color:
 		return self.__str__()
 	def __iter__(self):
 		return self.astuple().__iter__()
-	
+	def __getitem__(self,idx):
+		if(idx in [0,1,2,3]):
+			return tuple(self)[idx]
+		else:
+			raise KeyError(idx)
+	def __add__(self,other):
+		if(isinstance(other,color)):
+			ls=[i+other[idx] for idx,i in enumerate(self)]
+			return color(*ls)
+		else:
+			return NotImplemented
+	def __radd__(self,other):
+		if(other==0):
+			return color(*self)
+		else:
+			return NotImplemented
+	def __sub__(self,other):
+		if(isinstance(other,color)):
+			ls=[i-other[idx] for idx,i in enumerate(self)]
+			return color(*ls)
+		else:
+			return NotImplemented
+	def __mul__(self,other):
+		if(isinstance(other,int) or isinstance(other,float)):
+			return color(*[i*other for i in self])
+		else:
+			return NotImplemented
+	def __truediv__(self,other):
+		if(isinstance(other,int) or isinstance(other,float)):
+			return color(*[i/other for i in self])
+		else:
+			return NotImplemented
 def cat_alpha(RGB,A):
 	RGBA=RGB+(A,)
 	return RGBA
@@ -135,6 +166,11 @@ c_color_BLUE=c_color_RED.alterHSV(H=240)
 c_color_BLUE_half=c_color_RED_half.alterHSV(H=240)
 c_color_BLUE_lighten=c_color_RED_lighten.alterHSV(H=240)
 c_color_BLUE_darken=c_color_RED_darken.alterHSV(H=240)
+
+c_color_MIKU=color.RGB(57,197,187)
+c_color_MIKU_lighten=c_color_MIKU.lighten()
+c_color_MIKU_darken=c_color_MIKU.darken()
+c_color_MIKU_half=c_color_MIKU.alter(A=128)
 
 c_color_TRANSPARENT=color(A=0)
 c_color_WHITE=color(255,255,255,255)
