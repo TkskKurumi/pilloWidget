@@ -22,7 +22,8 @@ def expandWidth(img,width,bg=(0,0,0,0)):
 	ret.paste(img,box=(left,0),mask=img)
 	return ret
 def expandWH(img,size,bg=(0,0,0,0)):
-	return expand
+	w,h=size
+	return expandHeight(expandWidth(img,w,bg=bg),h,bg=bg)
 def cropWidth(img,width):
 	w,h=img.size
 	left=int((w-width)/2)

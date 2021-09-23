@@ -45,6 +45,17 @@ class color:
 		V=V or VV
 		A=A or self.A
 		return color.HSVA(H,S,V,A)
+	def __getattr__(self,name):
+		
+		H,S,V=RGB2HSV(self.R,self.G,self.B)
+		if(name=='H'):
+			return H
+		elif(name=='S'):
+			return S
+		elif(name=='V'):
+			return V
+		else:
+			return AttributeError(name)
 	def invert(self):
 		R=255-self.R
 		G=255-self.G
@@ -94,6 +105,7 @@ def cat_alpha(RGB,A):
 def HSV2RGB(H,S=None,V=None):
 	if(isinstance(H,tuple)):
 		H,S,V=H
+	H=H%360
 	return ImageColor.getrgb('HSV(%d,%d%%,%d%%)'%(H,S,V))
 def HSVA2RGBA(H,S=None,V=None,A=None):
 	if(isinstance(H,tuple)):

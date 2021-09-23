@@ -86,10 +86,52 @@ def callable_content_example():
 	t=text(func)
 	t.render(bg=c_color_WHITE).save(path.join(result_pth,'callable_content_example1.png'))
 	t.render(bg=c_color_BLACK,fill=c_color_WHITE).save(path.join(result_pth,'callable_content_example2.png'))
-
-	
+def plot_bar_chart(items,title,height=512,name_renderer=None,theme_color=c_color_RED_lighten,name_format=None):
+	columns=[]
+	mx_num=max(items,key=lambda x:x[1])[1]
+	font_fill=theme_color.darken().darken()
+	borderWidth=height//30
+	if(name_renderer is None):
+		name_renderer=richText(width=512,contents=lambda **kwargs:[kwargs.get('name')],fontSize=height//15,fill=font_fill)
+	ll=theme_color.alterHSV(theme_color.H-20)
+	ru=theme_color.alterHSV(theme_color.H+20)
+	bar_fill=gradientBox(width=height,ll=ll,ru=ru).render()
+	bar_renderer=progressBar(width=height,borderWidth=0,progress=lambda **kwargs:kwargs.get('progress'),fill=bar_fill)
+	name_w=0
+	name_h=0
+	for idx,i in enumerate(items):
+		name,num=i
+		if(name_format is None):
+			nm='%s %.1f'%(name,num)
+		else:
+			nm=name_format(name,num)
+		name=name_renderer.render(name=nm)
+		w,h=name.size
+		name_w=max(name_w,w)
+		name_h=max(name_h,h)
+		items[idx]=(name,num)
+	for name,num in items:
+		name=resize.expandWH(name,(name_w,name_h))
+		bar=bar_renderer.render(progress=num/mx_num).transpose(Image.ROTATE_90)
+		r=column([bar,name])
+		columns.append(r)
+	bars_renderer=row(columns,alignY=1)
+	title=name_renderer.render(name=title,fontSize=name_renderer.fontSize*2)
+	ret_renderer=column([title,bars_renderer],alignX=0.5,bg=c_color_WHITE,borderWidth=borderWidth)
+	return ret_renderer.render()
+def plot_example(show=False):
+	items=[]
+	items.append(("A",3))
+	items.append(("B",6))
+	items.append(("Our product",8))
+	items.append(("Apple",7))
+	az=plot_bar_chart(items,"This is a title")
+	save_example('bar chart',az)
+	if(show):
+		az.show()
 if(__name__=='__main__'):
 	setKwargs_example()
 	callable_content_example()
 	row_example()
 	im_message_example()
+	plot_example()

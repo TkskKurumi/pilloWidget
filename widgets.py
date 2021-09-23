@@ -37,8 +37,7 @@ class widget:
 			ret.append(_render_content(i,**kwargs))
 		return ret
 	pass
-class column(widget):
-	pass
+
 class row(widget):
 	#layouts a row of widgets
 	#if row widget has specified height attribute, it will force its children column layout evenly by setting their height attribute.
