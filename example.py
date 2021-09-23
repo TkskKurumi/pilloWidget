@@ -1,4 +1,7 @@
-from widgets import *
+try:
+	from .widgets import *
+except Exception:
+	from widgets import *
 from os import path
 result_pth=path.join(path.dirname(__file__),'samples','results')
 project_pth=path.dirname(__file__)
