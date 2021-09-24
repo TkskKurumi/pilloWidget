@@ -130,7 +130,7 @@ def plot_bar_chart_horizontal(items,title,size=512,name_renderer=None,theme_colo
     font_fill=theme_color.darken().darken()
     borderWidth=size//30
     if(name_renderer is None):
-        name_renderer=richText(width=size//4,contents=lambda **kwargs:[kwargs.get('name')],fontSize=size//40,fill=font_fill)
+        name_renderer=richText(width=size//4,contents=lambda **kwargs:[kwargs.get('name')],fontSize=size//20,fill=font_fill)
     ll=theme_color.alterHSV(theme_color.H-20)
     ru=theme_color.alterHSV(theme_color.H+20)
     bar_fill=gradientBox(width=size,ll=ll,ru=ru).render()
