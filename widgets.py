@@ -1,4 +1,5 @@
 from PIL import Image,ImageFont,ImageDraw
+import time
 try:
 	from .constants import *
 	from . import resize
@@ -622,6 +623,15 @@ class bubble(widget):
 		#print(bs,mid_border_size)
 		#ret1.show()
 		return Image.alpha_composite(ret,ret1)
+class gif(widget):
+	def __init__(self,frames,fps):
+		self.frames=frames
+		self.fps=fps
+	def render(self,**kwargs):
+		frames=solveCallable(self.frames)
+		le=len(frames)
+		idx=int(time.time()*self.fps)%le
+		return _render_content(frames[idx])
 class progressBar(widget):
 	def __init__(self,width,bg=None,fill=None,height=None,progress=None,borderColor=None,resizeMethod=resize.cropWH,borderWidth=None):
 		self.bg=bg
