@@ -666,6 +666,10 @@ class progressBar(widget):
 		else:
 			raise Exception("Unsupported progress bar fill %s"%fill)
 		return ret
+def fExtractKwa(key):
+	def inner(key=key,**kwargs):
+		return kwargs.get(key)
+	return inner
 if(False and __name__=='__main__'):	#test
 	from os import path
 	def textFunction(**kwargs):
