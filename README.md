@@ -1,6 +1,6 @@
 # pilloWidget
 
-PIL Widget, widget style python pillow layouting. Supposed to be used in QQ Bots.
+PIL Widget, Declarative UI python pillow layouting. Supposed to be used in QQ Bots.
 
 example in example.py
 
